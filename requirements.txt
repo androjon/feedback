@@ -4,4 +4,5 @@ wordcloud
 matplotlib_venn
 streamlit_extras
 requests
-google-cloud-storage
+gcsfs
+st-files-connection
