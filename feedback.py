@@ -96,7 +96,7 @@ def create_feedback(selected_occupation, question1, tab):
             feedback.append(new_entry)
             save_feedback(feedback)
             hide_feedback()
-            #st.rerun()
+            st.rerun()
 
 def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
     SHORT_ELBOW = "└─"
