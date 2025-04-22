@@ -39,11 +39,6 @@ def initiate_session_state():
     if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
-        st.session_state.form_visible_tab1 = False
-        st.session_state.form_visible_tab2 = False
-        st.session_state.form_visible_tab3 = False
-        st.session_state.form_visible_tab4 = False
-        st.session_state.form_visible_tab5 = False
 
         credentials_dict = st.secrets["gcp_service_account"]
         st.session_state.credentials = service_account.Credentials.from_service_account_info(credentials_dict)
@@ -69,34 +64,24 @@ def save_feedback(feedback_data):
     json_bytes = json_string.encode("utf-8")
     blob.upload_from_string(json_bytes, content_type = "application/json; charset=utf-8")
 
-def hide_feedback():
-    st.session_state.form_visible_tab1 = False
-    st.session_state.form_visible_tab2 = False
-    st.session_state.form_visible_tab3 = False
-    st.session_state.form_visible_tab4 = False
-    st.session_state.form_visible_tab5 = False
+@st.dialog("Återkoppling")
+def dialog_(selected_occupation, tab_name, question):
+    stars = st.feedback("stars", key=f"{tab_name}_stars")
+    kommentar = st.text_area(question, key=f"{tab_name}_q1")
 
-def create_feedback(selected_occupation, question1, tab):
-    with st.sidebar:
-        st.header("Återkoppling")
-        st.write("Hur relevant är informationen som visas?")
-        selected = st.feedback("stars", key = f"{tab}_stars")
-
-        question_1 = st.text_area(question1, key = f"{tab}_q1")
-
-        if st.button("Spara", key = f"{tab}_save_button"):
-            feedback = load_feedback()
-            new_entry = {
-                "tid": datetime.datetime.now().isoformat(),
-                "selected_occupation": selected_occupation,
-                "selected_tab": tab,
-                "kommentar": question_1}
-            if selected is not None:
-                new_entry["stars"] = selected
-            feedback.append(new_entry)
-            save_feedback(feedback)
-            hide_feedback()
-            st.rerun()
+    if st.button("Spara återkoppling", key=f"{tab_name}_save_button"):
+        feedback = load_feedback()
+        new_entry = {
+            "tid": datetime.datetime.now().isoformat(),
+            "selected_occupation": selected_occupation,
+            "selected_tab": tab_name,
+            "kommentar": kommentar
+        }
+        if stars is not None:
+            new_entry["stars"] = stars
+        feedback.append(new_entry)
+        save_feedback(feedback)
+        st.rerun()
 
 def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
     SHORT_ELBOW = "└─"
@@ -427,12 +412,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
-        if st.button("Ge återkoppling", key = f"{tab_names[0]}_knapp",  icon = ":material/comment:"):
-            st.session_state.form_visible_tab1 = True
-
-        if st.session_state.form_visible_tab1 == True:
-            question1 = "Vilka delar av sidan är hjälpsam?"
-            create_feedback(occupation_name,  question1, tab_names[0])
+        if st.button("Återkoppla", key = "btn_tab1"):
+            dialog_(occupation_name, tab_names[0], "Vilka delar av sidan är hjälpsam?")
 
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -508,12 +489,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
 
-        if st.button("Ge återkoppling", key = f"{tab_names[1]}_knapp",  icon = ":material/comment:"):
-            st.session_state.form_visible_tab2 = True
-
-        if st.session_state.form_visible_tab2 == True:
-            question1 = "Underlättar annonsantal och länk till Platsbanken ditt arbete?"
-            create_feedback(occupation_name, question1, tab_names[1])
+        if st.button("Återkoppla", key = "btn_tab2"):
+            dialog_(occupation_name, tab_names[1], "Underlättar annonsantal och länk till Platsbanken ditt arbete?")
 
     with tab3:
         if barometer:
@@ -548,12 +525,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
-        if st.button("Ge återkoppling", key = f"{tab_names[2]}_knapp",  icon = ":material/comment:"):
-            st.session_state.form_visible_tab3 = True
-
-        if st.session_state.form_visible_tab3 == True:
-            question1 = "Är utbildningsstatistiken användbar och vad skulle göra den bättre?"
-            create_feedback(occupation_name, question1, tab_names[2])
+        if st.button("Återkoppla", key = "btn_tab3"):
+            dialog_(occupation_name, tab_names[2], "Är utbildningsstatistiken användbar och vad skulle göra den bättre?")
 
     with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -613,22 +586,14 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
 
-        if st.button("Ge återkoppling", key = f"{tab_names[3]}_knapp",  icon = ":material/comment:"):
-            st.session_state.form_visible_tab4 = True
-
-        if st.session_state.form_visible_tab4 == True:
-            question1 = "Fungerar informationen om närliggande yrken i samtal med sökande?"
-            create_feedback(occupation_name, question1, tab_names[3])
+        if st.button("Återkoppla", key = "btn_tab4"):
+            dialog_(occupation_name, tab_names[3], "Fungerar informationen om närliggande yrken i samtal med sökande?")
 
     with tab5:
         st.write(occupation_field)
 
-        if st.button("Ge återkoppling", key = f"{tab_names[4]}_knapp",  icon = ":material/comment:"):
-            st.session_state.form_visible_tab5 = True
-
-        if st.session_state.form_visible_tab5 == True:
-            question1 = "Ger avstånd, annonsantal och/eller länk dig argument som går att använda i samtal med sökande?"
-            create_feedback(occupation_name, question1, tab_names[4])
+        if st.button("Återkoppla", key = "btn_tab5"):
+            dialog_(occupation_name, tab_names[4], "Ger avstånd, annonsantal och/eller länk dig argument som går att använda i samtal med sökande?")
 
 def choose_occupation_name():
     show_initial_information()
