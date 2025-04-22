@@ -65,9 +65,11 @@ def save_feedback(feedback_data):
     blob.upload_from_string(json_bytes, content_type = "application/json; charset=utf-8")
 
 @st.dialog("Återkoppling")
-def dialog_(selected_occupation, tab_name, question):
-    stars = st.feedback("stars", key=f"{tab_name}_stars")
-    kommentar = st.text_area(question, key=f"{tab_name}_q1")
+def dialog_(selected_occupation, tab_name, questions):
+    stars = st.feedback("stars", key = f"{tab_name}_stars")
+    answers = {}
+    for q in questions:
+        answers[q] = st.text_area(label = q, key = f"{q}")
 
     if st.button("Spara återkoppling", key=f"{tab_name}_save_button"):
         feedback = load_feedback()
@@ -75,7 +77,7 @@ def dialog_(selected_occupation, tab_name, question):
             "tid": datetime.datetime.now().isoformat(),
             "selected_occupation": selected_occupation,
             "selected_tab": tab_name,
-            "kommentar": kommentar
+            "kommentarer": answers
         }
         if stars is not None:
             new_entry["stars"] = stars
@@ -413,7 +415,7 @@ def post_selected_occupation(id_occupation):
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
         if st.button("Återkoppla", key = "btn_tab1"):
-            dialog_(occupation_name, tab_names[0], "Vilka delar av sidan är hjälpsam?")
+            dialog_(occupation_name, tab_names[0], ["Vad saknar du i svaret när du väljer ett yrke?", "Är det någon information som är överflödig?"])
 
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -490,7 +492,7 @@ def post_selected_occupation(id_occupation):
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
 
         if st.button("Återkoppla", key = "btn_tab2"):
-            dialog_(occupation_name, tab_names[1], "Underlättar annonsantal och länk till Platsbanken ditt arbete?")
+            dialog_(occupation_name, tab_names[1], ["Underlättar annonsantal och länk till Platsbanken ditt arbete?"])
 
     with tab3:
         if barometer:
@@ -526,7 +528,7 @@ def post_selected_occupation(id_occupation):
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
         if st.button("Återkoppla", key = "btn_tab3"):
-            dialog_(occupation_name, tab_names[2], "Är utbildningsstatistiken användbar och vad skulle göra den bättre?")
+            dialog_(occupation_name, tab_names[2], ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"])
 
     with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -587,13 +589,13 @@ def post_selected_occupation(id_occupation):
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
 
         if st.button("Återkoppla", key = "btn_tab4"):
-            dialog_(occupation_name, tab_names[3], "Fungerar informationen om närliggande yrken i samtal med sökande?")
+            dialog_(occupation_name, tab_names[3], ["Är fliken närliggande yrken en hjälp i samtal med sökande?"])
 
     with tab5:
         st.write(occupation_field)
 
         if st.button("Återkoppla", key = "btn_tab5"):
-            dialog_(occupation_name, tab_names[4], "Ger avstånd, annonsantal och/eller länk dig argument som går att använda i samtal med sökande?")
+            dialog_(occupation_name, tab_names[4], ["Är det något du saknar i sökresultatet?", "Är det någon information som är överflödig?!", "Att lägga till närliggande yrken i sökresultatet skulle det skapa mervärde?", "Ge ett exempel på ett konstigt sökresultat"])
 
 def choose_occupation_name():
     show_initial_information()
