@@ -91,7 +91,7 @@ def dialog_(selected_occupation, tab_name, questions):
         feedback.append(new_entry)
         save_feedback(feedback)
         st.session_state[f"{tab_name}_feedback_saved"] = True
-        #st.rerun()
+        st.rerun()
 
 def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
     SHORT_ELBOW = "└─"
