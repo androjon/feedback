@@ -72,7 +72,7 @@ def save_feedback(feedback_data):
     blob.upload_from_string(json_bytes, content_type = "application/json; charset=utf-8")
 
 @st.dialog("Återkoppling")
-def dialog_(selected_occupation, tab_name, questions):
+def dialog_(selected_occupation, tab_name, questions, selected_location = None):
     stars = st.feedback("stars", key = f"{tab_name}_stars")
     answers = {}
     for q in questions:
@@ -88,15 +88,17 @@ def dialog_(selected_occupation, tab_name, questions):
         }
         if stars is not None:
             new_entry["stars"] = stars
+        if selected_location is not None:
+            new_entry["selected_location"] = selected_location
         feedback.append(new_entry)
         save_feedback(feedback)
         st.session_state[f"{tab_name}_feedback_saved"] = True
         st.rerun()
 
 @st.fragment
-def create_feedback(occupation_name, tab_name, questions):
+def create_feedback(occupation_name, tab_name, questions, selected_location = None):
     if st.button("Återkoppla", key = f"{tab_name}_button"):
-        dialog_(occupation_name, tab_name, questions)
+        dialog_(occupation_name, tab_name, questions, selected_location)
     if st.session_state[f"{tab_name}_feedback_saved"] == True:
         st.success("Återkoppling sparad. Tack!")
 
@@ -753,7 +755,7 @@ def post_selected_occupation(id_occupation):
             st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
 
             feedback_questions = ["Är det något du saknar i sökresultatet?", "Är det någon information som är överflödig?", "Att lägga till närliggande yrken i sökresultatet skulle det skapa mervärde?", "Ge ett exempel på ett konstigt resultat"]
-            create_feedback(occupation_name, tab_names[4], feedback_questions)
+            create_feedback(occupation_name, tab_names[4], feedback_questions, selected_location)
 
 def choose_occupation_name():
     show_initial_information()
