@@ -83,6 +83,7 @@ def dialog_(selected_occupation, tab_name, questions):
             new_entry["stars"] = stars
         feedback.append(new_entry)
         save_feedback(feedback)
+        st.session_state[f"{tab_name}_feedback_saved"] = True
         st.rerun()
 
 def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
@@ -327,6 +328,10 @@ def post_selected_occupation(id_occupation):
     ssyk_code = occupation_group[0:4]
     aub = st.session_state.aub_data.get(ssyk_code)
 
+    field_string = f"{occupation_field} (yrkesområde)"
+    group_string = f"{occupation_group} (yrkesgrupp)"
+    occupation_string = f"{occupation_name} (yrkesbenämning)"
+
     if info["barometer_id"]:
         barometer = [f"{info['barometer_name']} (yrkesbarometeryrke)", info["barometer_above_ssyk"], info["barometer_part_of_ssyk"]]
     else:
@@ -351,11 +356,11 @@ def post_selected_occupation(id_occupation):
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_names)
 
-    with tab1:
-        field_string = f"{occupation_field} (yrkesområde)"
-        group_string = f"{occupation_group} (yrkesgrupp)"
+    for tab in tab_names:
+        if f"{tab}_feedback_saved" not in st.session_state:
+            st.session_state[f"{tab}_feedback_saved"] = False
 
-        occupation_string = f"{occupation_name} (yrkesbenämning)"
+    with tab1:
         if barometer:
             tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"], yrkessamling, license)
         else:
@@ -416,12 +421,10 @@ def post_selected_occupation(id_occupation):
 
         if st.button("Återkoppla", key = "btn_tab1"):
             dialog_(occupation_name, tab_names[0], ["Vad saknar du i svaret när du väljer ett yrke?", "Är det någon information som är överflödig?"])
+        if st.session_state[f"{tab_names[0]}_feedback_saved"] == True:
+            st.success("Återkoppling sparad. Tack!")
 
     with tab2:
-        field_string = f"{occupation_field} (yrkesområde)"
-        group_string = f"{occupation_group} (yrkesgrupp)"
-        occupation_string = f"{occupation_name} (yrkesbenämning)"
-
         if barometer:
             tree = create_tree(field_string, group_string, occupation_string, barometer, ["barometer", "group"], yrkessamling, license)
             st.markdown(tree, unsafe_allow_html = True)
@@ -437,10 +440,7 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
-
                 path = "./data/"
                 
                 a.image(f"{path}/{mojligheter_png_name}")
@@ -448,8 +448,6 @@ def post_selected_occupation(id_occupation):
 
             except:
                 st.write(f"Ingen tillgänglig prognos")
-
-
         else:
             st.write(f"Ingen tillgänglig prognos")
 
@@ -493,6 +491,8 @@ def post_selected_occupation(id_occupation):
 
         if st.button("Återkoppla", key = "btn_tab2"):
             dialog_(occupation_name, tab_names[1], ["Underlättar annonsantal och länk till Platsbanken ditt arbete?"])
+        if st.session_state[f"{tab_names[1]}_feedback_saved"] == True:
+            st.success("Återkoppling sparad. Tack!")
 
     with tab3:
         if barometer:
@@ -529,12 +529,10 @@ def post_selected_occupation(id_occupation):
 
         if st.button("Återkoppla", key = "btn_tab3"):
             dialog_(occupation_name, tab_names[2], ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"])
+        if st.session_state[f"{tab_names[2]}_feedback_saved"] == True:
+            st.success("Återkoppling sparad. Tack!")
 
     with tab4:
-        field_string = f"{occupation_field} (yrkesområde)"
-        group_string = f"{occupation_group} (yrkesgrupp)"
-        occupation_string = f"{occupation_name} (yrkesbenämning)"
-
         if barometer:
             if info["similar_yb_yb"] == True:
                 tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"], yrkessamling, license)
@@ -590,12 +588,16 @@ def post_selected_occupation(id_occupation):
 
         if st.button("Återkoppla", key = "btn_tab4"):
             dialog_(occupation_name, tab_names[3], ["Är fliken närliggande yrken en hjälp i samtal med sökande?"])
+        if st.session_state[f"{tab_names[3]}_feedback_saved"] == True:
+            st.success("Återkoppling sparad. Tack!")
 
     with tab5:
         st.write(occupation_field)
 
         if st.button("Återkoppla", key = "btn_tab5"):
             dialog_(occupation_name, tab_names[4], ["Är det något du saknar i sökresultatet?", "Är det någon information som är överflödig?!", "Att lägga till närliggande yrken i sökresultatet skulle det skapa mervärde?", "Ge ett exempel på ett konstigt sökresultat"])
+        if st.session_state[f"{tab_names[4]}_feedback_saved"] == True:
+            st.success("Återkoppling sparad. Tack!")
 
 def choose_occupation_name():
     show_initial_information()
