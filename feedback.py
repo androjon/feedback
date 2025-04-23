@@ -83,7 +83,8 @@ def dialog_(selected_occupation, tab_name, questions, selected_location = None):
             "tid": datetime.datetime.now().isoformat(),
             "selected_occupation": selected_occupation,
             "selected_tab": tab_name,
-            "kommentarer": answers
+            "kommentarer": answers,
+            "version": "Malmö"
         }
         if stars is not None:
             new_entry["stars"] = stars
