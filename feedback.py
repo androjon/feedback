@@ -381,28 +381,45 @@ def create_similar_occupations(ssyk_source, region_id):
     return sorted_similar_1, sorted_similar_2
 
 @st.fragment
-def show_related_locations(id_selected_location):
-    locations = create_list_locations(id_selected_location)
+def choose_related_locations(tab_name):
+    valid_locations = sorted(st.session_state.valid_locations)
+    selected_location = st.selectbox(
+        "Välj en ort",
+        (valid_locations), placeholder = "", index = None)
 
-    col3, col4 = st.columns(2)
+    if selected_location:
+        id_selected_location = st.session_state.locations_id.get(selected_location)
 
-    relevant_locations = locations[1:]
+        locations = create_list_locations(id_selected_location)
 
-    antal_orter = len(relevant_locations)
-    n = math.ceil(antal_orter / 2)
+        col3, col4 = st.columns(2)
 
-    locations_1 = relevant_locations[:n]
-    locations_2 = relevant_locations[n:]
+        relevant_locations = locations[1:]
 
-    with col3:
-        for l in locations_1:
-            string_location, hover_info = create_string_location(l)
-            st.markdown(string_location, unsafe_allow_html = True, help = hover_info)
+        antal_orter = len(relevant_locations)
+        n = math.ceil(antal_orter / 2)
 
-    with col4:
-        for l in locations_2:
-            string_location, hover_info = create_string_location(l)
-            st.markdown(string_location, unsafe_allow_html = True, help = hover_info)
+        locations_1 = relevant_locations[:n]
+        locations_2 = relevant_locations[n:]
+
+        with col3:
+            for l in locations_1:
+                string_location, hover_info = create_string_location(l)
+                st.markdown(string_location, unsafe_allow_html = True, help = hover_info)
+
+        with col4:
+            for l in locations_2:
+                string_location, hover_info = create_string_location(l)
+                st.markdown(string_location, unsafe_allow_html = True, help = hover_info)
+
+        text_dataunderlag_närliggande_orter = "<strong>Dataunderlag</strong><br />Relevanta pendlingsorter baseras på avstånd mellan orter från öppen geodata, befolkningstäthet och annonsantal i Historiska annonser."
+        
+        st.write("---")
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
+
+        feedback_questions = ["Är det något du saknar i sökresultatet?", "Är det någon information som är överflödig?", "Ge ett exempel på ett konstigt resultat"]
+        create_feedback("", tab_name, feedback_questions, selected_location)
+
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -663,23 +680,7 @@ def post_selected_occupation(id_occupation):
 
     with tab5:
         st.subheader("Relevanta pendlingsorter")
-
-        valid_locations = sorted(st.session_state.valid_locations)
-        selected_location = st.selectbox(
-            "Välj en ort",
-            (valid_locations), placeholder = "", index = None)
-
-        if selected_location:
-            id_selected_location = st.session_state.locations_id.get(selected_location)
-            show_related_locations(id_selected_location)
-
-            text_dataunderlag_närliggande_orter = "<strong>Dataunderlag</strong><br />Relevanta pendlingsorter baseras på avstånd mellan orter från öppen geodata, befolkningstäthet och annonsantal i Historiska annonser."
-            
-            st.write("---")
-            st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
-
-            feedback_questions = ["Är det något du saknar i sökresultatet?", "Är det någon information som är överflödig?", "Ge ett exempel på ett konstigt resultat"]
-            create_feedback(occupation_name, tab_names[4], feedback_questions, selected_location)
+        choose_related_locations(tab_names[4])
 
 def choose_occupation_name():
     show_initial_information()
