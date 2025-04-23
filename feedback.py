@@ -414,7 +414,9 @@ def create_similar_occupations(ssyk_source, region_id):
         else:
             similar_2[name_similar] = [k, overlap, description_string]
 
-    return similar_1, similar_2
+    sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
+    sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
+    return sorted_similar_1, sorted_similar_2
 
 @st.fragment
 def show_related_locations(occupation_group_id, id_selected_location):
@@ -725,7 +727,7 @@ def post_selected_occupation(id_occupation):
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
 
-        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB)."
+        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB) och aktuell nationell eller regional prognos som illustreras med pil."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
