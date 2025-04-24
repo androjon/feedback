@@ -97,7 +97,7 @@ def dialog_(selected_occupation, tab_name, questions, selected_location = None):
 
 @st.fragment
 def create_feedback(occupation_name, tab_name, questions, selected_location = None):
-    if st.button("Återkoppla", key = f"{tab_name}_button"):
+    if st.button(f"Återkoppla {tab_name}", key = f"{tab_name}_button"):
         dialog_(occupation_name, tab_name, questions, selected_location)
     if st.session_state[f"{tab_name}_feedback_saved"] == True:
         st.success("Återkoppling sparad. Tack!")
