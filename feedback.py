@@ -188,10 +188,14 @@ def create_list_locations(id_location):
         "municipality": municipality_name,
         "distance": 0,
         "relevance": "hög"}]
+    
+    #Sortera efter hög, medel, låg
+    #Går ju inte alfabetiskt
 
-    list_relevant_locations = sorted(list_relevant_locations, key = lambda x: x["avstånd"])
+    order = {"hög": 0, "medel": 1, "låg": 2}
+    sorted_relevant_locations = sorted(list_relevant_locations, key = lambda x: (order.get(x["relevans"], 3), x["avstånd"]))
 
-    for l in list_relevant_locations:
+    for l in sorted_relevant_locations:
         town_with_municipality, municipality_name = split_town_municipality(l["ort2_id"])
 
         relevant_location = {
