@@ -387,6 +387,9 @@ def create_similar_occupations(ssyk_source, region_id):
 
 @st.fragment
 def choose_related_locations(tab_name):
+    info = "Tätorter hämtas från SCB. Förslag på orter baseras på en bedömning om relevans som beräknas utifrån befolkningstäthet, annonser på Platsbanken historiskt och avstånd. Avstånd är fågelvägen. Datat är i en första version."
+    st.write(info)
+
     valid_locations = sorted(st.session_state.valid_locations)
     selected_location = st.selectbox(
         "Välj en ort",
