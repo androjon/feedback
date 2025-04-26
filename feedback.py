@@ -10,7 +10,12 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
-#from import_ads_platsbanken import import_ads
+from import_ads_platsbanken import import_ads
+
+@st.cache_data
+def import_plastbanken():
+    data = import_ads()
+    return data
 
 @st.cache_data
 def import_data(filename):
@@ -19,7 +24,6 @@ def import_data(filename):
     output = json.loads(content)
     return output
 
-#@st.cache_data
 def fetch_data():
     st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
@@ -29,8 +33,8 @@ def fetch_data():
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
-    #st.session_state.ad_data_platsbanken = import_ads()
-    st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
+    st.session_state.ad_data_platsbanken = import_plastbanken()
+    #st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
     st.session_state.forecast = import_data("barometer_regional.json")
@@ -38,7 +42,6 @@ def fetch_data():
     st.session_state.valid_locations = list(st.session_state.locations_id.keys())
     st.session_state.geodata = import_data("ort_ort_relevans.json")
     st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
-
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
