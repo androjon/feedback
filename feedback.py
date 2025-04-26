@@ -19,7 +19,7 @@ def import_data(filename):
     output = json.loads(content)
     return output
 
-@st.cache_data
+#@st.cache_data
 def fetch_data():
     st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
