@@ -10,6 +10,11 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
+from import_ads_platsbanken import import_ads
+
+@st.cache_data
+def import_plastbanken():
+    st.session_state_ad_data_platsbanken = import_ads()
 
 @st.cache_data
 def import_data(filename):
@@ -26,7 +31,9 @@ def fetch_data():
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
-    st.session_state.regional_ads = import_data("ssyk_id_region_annonser_2024.json")
+    st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
+    import_plastbanken()
+    #st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
     st.session_state.forecast = import_data("barometer_regional.json")
@@ -34,6 +41,7 @@ def fetch_data():
     st.session_state.valid_locations = list(st.session_state.locations_id.keys())
     st.session_state.geodata = import_data("ort_ort_relevans.json")
     st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -143,32 +151,16 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, 
     string = "<br />".join(strings)
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
-
-@st.cache_data
-def fetch_number_of_ads(url):
-    response = requests.get(url)
-    data = response.text
-    json_data = json.loads(data)
-    data_total = json_data["total"]
-    number_of_ads = list(data_total.values())[0]
-    return number_of_ads
-
-def create_link_addnumbers(id_group, id_region = None):
+    
+def create_regional_link(id_group, id_region = None):
     if id_region == "i46j_HmG_v64":
         id_region = None
-    adlink = "https://jobsearch.api.jobtechdev.se/search?"
-    end = "&limit=0"
-    if id_region:
-        url = adlink + "occupation-group=" + id_group + "&region=" + id_region + end
-    else:
-        url = adlink + "occupation-group=" + id_group + end
-    number_of_ads = fetch_number_of_ads(url)
     link = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
     if id_region:
         region = "&l=2:" + id_region
-        return link + region, number_of_ads
+        return link + region
     else:
-        return link, number_of_ads
+        return link
 
 def split_town_municipality(town_municipality):
     town_municipality_split = town_municipality.split(";")
@@ -189,9 +181,6 @@ def create_list_locations(id_location):
         "distance": 0,
         "relevance": "hög"}]
     
-    #Sortera efter hög, medel, låg
-    #Går ju inte alfabetiskt
-
     order = {"hög": 0, "medel": 1, "låg": 2}
     sorted_relevant_locations = sorted(list_relevant_locations, key = lambda x: (order.get(x["relevans"], 3), x["avstånd"]))
 
@@ -317,17 +306,19 @@ def create_wordcloud(words):
     plt.tight_layout(pad = 0)
     st.pyplot(plt)
 
-def get_adds(occupation, region):
-    ads_selected_occupation = st.session_state.regional_ads.get(occupation)
+def get_adds(occupation, location):
+    ads = [0, 0]
+    ads_selected_occupation = st.session_state.ad_data_platsbanken.get(occupation)
     if ads_selected_occupation:
-        ads_selected_region = ads_selected_occupation.get(region)
-        if not ads_selected_region:
-            ads_selected_region = 0
-
-    if not ads_selected_occupation:
-        ads_selected_region = 0
-    
-    return ads_selected_region
+        ads_selected_location = ads_selected_occupation.get(location)
+        if ads_selected_location:
+            ads[0] = ads_selected_location
+    ads_selected_occupation_historical = st.session_state.ad_data_historical.get(occupation)
+    if ads_selected_occupation_historical:
+        ads_selected_location_historical = ads_selected_occupation_historical.get(location)
+        if ads_selected_location_historical:
+            ads[1] = ads_selected_location_historical
+    return ads
 
 def create_similar_occupations(ssyk_source, region_id):
     similar_1 = {}
@@ -337,6 +328,7 @@ def create_similar_occupations(ssyk_source, region_id):
         info_similar = st.session_state.occupationdata.get(k)
         name_similar = info_similar["preferred_label"]
         similar_description = info_similar["description"]
+        similar_group_id = info_similar["occupation_group_id"]
         overlap = v
 
         few_overlaps = "\U000025D4"
@@ -344,17 +336,17 @@ def create_similar_occupations(ssyk_source, region_id):
         many_overlaps = "\U000025D5"
 
         if overlap == 0:
-            name_similar = f"{name_similar} {few_overlaps}"
+            name_similar_f = f"{name_similar} {few_overlaps}"
         elif overlap == 0.5:
-            name_similar = f"{name_similar} {overlaps}"
+            name_similar_f = f"{name_similar} {overlaps}"
         else:
-            name_similar = f"{name_similar} {many_overlaps}"
+            name_similar_f = f"{name_similar} {many_overlaps}"
 
         occupation_group = info_similar["occupation_group"]
         ssyk_similar = occupation_group[0:4]
         labour_flow_ssyk = st.session_state.labour_flow.get(ssyk_source)
         if ssyk_similar in labour_flow_ssyk:
-            name_similar = f"{name_similar} (SCB)"
+            name_similar_f = f"{name_similar_f} (SCB)"
 
         if info_similar["barometer_id"]:
             occupation_forecast = st.session_state.forecast.get(info_similar["barometer_id"])
@@ -367,7 +359,15 @@ def create_similar_occupations(ssyk_source, region_id):
                         arrow = "\u2192"
                     elif regional_forecast == "stora":
                         arrow = "\u2191"
-                    name_similar = f"{name_similar} {arrow}"
+                    name_similar_f = f"{name_similar_f} {arrow}"
+
+        ads = get_adds(similar_group_id, region_id)
+        if ads[0] == 1:
+            annons_er_plats = "annons"
+        else:
+            annons_er_plats = "annonser"
+        link = f"{ads[0]} {annons_er_plats} <a href='{create_regional_link(similar_group_id, region_id)}'>Platsbanken</a> (2024: {ads[1]})"
+        similar_string = f"<p style='font-size:16px;'><strong>{name_similar_f}</strong><br />&emsp;&emsp;&emsp;<small>{link}</small></p>"        
 
         if info_similar["esco_description"] == True:
             description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
@@ -376,10 +376,10 @@ def create_similar_occupations(ssyk_source, region_id):
             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
         if ssyk_similar in labour_flow_ssyk:
-            similar_1[name_similar] = [k, overlap, description_string]
+            similar_1[name_similar_f] = [k, overlap, description_string, similar_string, name_similar]
 
         else:
-            similar_2[name_similar] = [k, overlap, description_string]
+            similar_2[name_similar_f] = [k, overlap, description_string, similar_string, name_similar]
 
     sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
     sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
@@ -580,11 +580,11 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
-        ads_selected_region = get_adds(occupation_group_id, selected_region_id)
-        link, ads_now = create_link_addnumbers(occupation_group_id, selected_region_id)
+        ads = get_adds(occupation_group_id, selected_region_id)
+        link = create_regional_link(occupation_group_id, selected_region_id)
 
-        c.metric(label = "Platsbanken", value = ads_now)
-        d.metric(label = "2024", value = ads_selected_region)
+        c.metric(label = "Platsbanken", value = ads[0])
+        d.metric(label = "2024", value = ads[1])
 
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
         
@@ -662,18 +662,20 @@ def post_selected_occupation(id_occupation):
                 for key, value in similar_1.items():
                     with st.popover(key, use_container_width = True):
                         adwords_similar = st.session_state.adwords.get(value[0])
-                        venn = create_venn(occupation_name, key, adwords_similar, value[1])
+                        venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
                         st.pyplot(venn)
-                        st.markdown(value[2], unsafe_allow_html = True)                 
+                        st.markdown(value[3], unsafe_allow_html = True)  
+                        st.markdown(value[2], unsafe_allow_html = True)               
 
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
                     with st.popover(key, use_container_width = True):
                         adwords_similar = st.session_state.adwords.get(value[0])
-                        venn = create_venn(occupation_name, key, adwords_similar, value[1])
+                        venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
                         st.pyplot(venn)
-                        st.markdown(value[2], unsafe_allow_html = True) 
+                        st.markdown(value[3], unsafe_allow_html = True)
+                        st.markdown(value[2], unsafe_allow_html = True)     
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
