@@ -14,7 +14,8 @@ from import_ads_platsbanken import import_ads
 
 @st.cache_data
 def import_plastbanken():
-    st.session_state.ad_data_platsbanken = import_ads()
+    data = import_ads()
+    return data
 
 @st.cache_data
 def import_data(filename):
@@ -32,7 +33,7 @@ def fetch_data():
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
-    import_plastbanken()
+    st.session_state.ad_data_platsbanken = import_ads()
     #st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
