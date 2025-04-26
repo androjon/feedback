@@ -14,7 +14,7 @@ from import_ads_platsbanken import import_ads
 
 @st.cache_data
 def import_plastbanken():
-    st.session_state_ad_data_platsbanken = import_ads()
+    st.session_state.ad_data_platsbanken = import_ads()
 
 @st.cache_data
 def import_data(filename):
