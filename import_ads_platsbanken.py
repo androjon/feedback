@@ -37,6 +37,3 @@ def import_ads():
             output_ssyk_regions_municipalities[ssyk_id][region_id] += 1
 
     return output_ssyk_regions_municipalities
-
-platsbanken = import_ads()
-skapa_json_fil("platsbanken.json", platsbanken)
