@@ -10,7 +10,7 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
-from import_ads_platsbanken import import_ads
+#from import_ads_platsbanken import import_ads
 
 @st.cache_data
 def import_data(filename):
