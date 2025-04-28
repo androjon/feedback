@@ -12,6 +12,7 @@ from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
 from import_ads_platsbanken import import_ads
 
+
 @st.cache_data
 def import_plastbanken():
     data = import_ads()
@@ -320,6 +321,84 @@ def get_adds(occupation, location):
             ads[1] = ads_selected_location_historical
     return ads
 
+def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link):
+    överlapp_popover_dict = {0: "\U000025D4", 0.5: "\U000025D1", 1: "\U000025D5"}
+    name_similar_f = f"{namn} {överlapp_popover_dict.get(överlappningsgrad, 0)}"
+    överlapp_dict = {0: 25, 0.5: 50, 1: 75}
+    fyllnadsnivå = överlapp_dict.get(överlappningsgrad, 0)
+    fyllnadsgrad = fyllnadsnivå / 100 * 360
+
+    scb_text = " (SCB)" if scb else ""
+    name_similar_f = f"{name_similar_f}{scb_text}"
+
+    if prognos is not None:
+        pil_dict = {"öka": "\u2191", "minska": "\u2193", "vara oförändrad": "\u2192"}
+        pil = pil_dict.get(prognos[1].lower(), "")
+        name_similar_f = f"{name_similar_f}{pil_dict.get(prognos[1].lower())}"
+        jobbmojlighet_färg = {"små": "#ffffff", "medelstora": "#B7DB92", "stora": "#7EC03C"}
+        färg = jobbmojlighet_färg.get(prognos[0].lower(), "#ffffff")
+
+        #Cirkeln justeras lite uppåt. 1px.
+        färg_html = f'<div style="display:inline-block;width:0.9em;height:0.9em;background-color:{färg};border-radius:50%;border:1px solid black;margin-left:6px;vertical-align:middle;position:relative;top:-1px;"></div>'
+        
+    else:
+        pil = ""
+        färg_html = ""
+
+    annonser_idag, annonser_2024 = annonser
+    annons_er_plats = "annons" if annonser_idag == 1 else "annonser"
+
+    first_row_html = f"""
+    <div style="display: flex; align-items: center; font-size: 16px; font-family: sans-serif;">
+        <span style="margin-right: 0.5em;">{namn}{scb_text}</span>
+        <div style="
+            width: 1em;
+            height: 1em;
+            border-radius: 50%;
+            background: conic-gradient(black 0deg {fyllnadsgrad}deg, white {fyllnadsgrad}deg 360deg);
+            border: 1px solid #666;
+            margin-right: 0.5em;">
+        </div>
+        <span>{pil}</span>
+    </div>
+    """
+
+    first_row_bold_html = first_row_html.replace(f">{namn}", f"><strong>{namn}</strong>")
+
+    #Med färgad cirkel efter annonsantal
+    # second_row_html = f"""
+    # <div style="font-size: 13px; color: #333; margin-top: 2px; font-family: sans-serif;">
+    #     &emsp;&emsp;&emsp;
+    #     {annonser_idag} {annons_er_plats} 
+    #     <a href="{link}" target="_blank" style="text-decoration: none; color: #0066cc;">
+    #         Platsbanken
+    #     </a> 
+    #     (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>) {färg_html}
+    # </div>
+    # """
+
+    second_row_html = f"""
+    <div style="font-size: 13px; color: #333; margin-top: 2px; font-family: sans-serif;">
+        &emsp;&emsp;&emsp;
+        {färg_html}&nbsp;
+        {annonser_idag} {annons_er_plats} 
+        <a href="{link}" target="_blank" style="text-decoration: none; color: #0066cc;">
+            Platsbanken
+        </a> 
+        (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>)
+    </div>
+    """
+
+
+    full_html = f"""
+    <div style="margin-bottom: 14px;">
+        {first_row_bold_html}
+        {second_row_html}
+    </div>
+    """
+
+    return full_html, name_similar_f
+
 def create_similar_occupations(ssyk_source, region_id):
     similar_1 = {}
     similar_2 = {}
@@ -329,45 +408,27 @@ def create_similar_occupations(ssyk_source, region_id):
         name_similar = info_similar["preferred_label"]
         similar_description = info_similar["description"]
         similar_group_id = info_similar["occupation_group_id"]
-        overlap = v
 
-        few_overlaps = "\U000025D4"
-        overlaps = "\U000025D1"
-        many_overlaps = "\U000025D5"
-
-        if overlap == 0:
-            name_similar_f = f"{name_similar} {few_overlaps}"
-        elif overlap == 0.5:
-            name_similar_f = f"{name_similar} {overlaps}"
-        else:
-            name_similar_f = f"{name_similar} {many_overlaps}"
-
+        labour_flow = False
         occupation_group = info_similar["occupation_group"]
         ssyk_similar = occupation_group[0:4]
         labour_flow_ssyk = st.session_state.labour_flow.get(ssyk_source)
         if ssyk_similar in labour_flow_ssyk:
-            name_similar_f = f"{name_similar_f} (SCB)"
+            labour_flow = True
 
         if info_similar["barometer_id"]:
             occupation_forecast = st.session_state.forecast.get(info_similar["barometer_id"])
             if occupation_forecast:
                 regional_forecast = occupation_forecast.get(region_id)
-                if regional_forecast:
-                    if regional_forecast == "små":
-                        arrow = "\u2193"
-                    elif regional_forecast == "medelstora":
-                        arrow = "\u2192"
-                    elif regional_forecast == "stora":
-                        arrow = "\u2191"
-                    name_similar_f = f"{name_similar_f} {arrow}"
+            else:
+                regional_forecast = None
+        else:
+            regional_forecast = None
 
         ads = get_adds(similar_group_id, region_id)
-        if ads[0] == 1:
-            annons_er_plats = "annons"
-        else:
-            annons_er_plats = "annonser"
-        link = f"{ads[0]} {annons_er_plats} <a href='{create_regional_link(similar_group_id, region_id)}'>Platsbanken</a> (2024: {ads[1]})"
-        similar_string = f"<p style='font-size:16px;'><strong>{name_similar_f}</strong><br />&emsp;&emsp;&emsp;<small>{link}</small></p>"        
+
+        similar_string, name_similar_f = render_job_info_html(
+            name_similar, v, labour_flow, regional_forecast, ads, create_regional_link(similar_group_id, region_id))
 
         if info_similar["esco_description"] == True:
             description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
@@ -376,10 +437,10 @@ def create_similar_occupations(ssyk_source, region_id):
             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
         if ssyk_similar in labour_flow_ssyk:
-            similar_1[name_similar_f] = [k, overlap, description_string, similar_string, name_similar]
+            similar_1[name_similar_f] = [k, v, description_string, similar_string, name_similar]
 
         else:
-            similar_2[name_similar_f] = [k, overlap, description_string, similar_string, name_similar]
+            similar_2[name_similar_f] = [k, v, description_string, similar_string, name_similar]
 
     sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
     sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
@@ -526,7 +587,7 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Vad saknar du i svaret när du väljer ett yrke?", "Är det någon information som är överflödig?"]
+        feedback_questions = ["Vad saknar du i svaret när du väljer ett yrke?", "Är det någon information som är överflödig?", "Om du tycker att yrkesinfo är ett bra redskap, var tycker du att den skall finnas för att vara till mest nytta?"]
         create_feedback(occupation_name, tab_names[0], feedback_questions)
 
     with tab2:
@@ -657,6 +718,8 @@ def post_selected_occupation(id_occupation):
 
             similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
 
+            info_liknande_yrke_statistik = "Yrkesbenämningen följs av följande information på första raden: (SCB) om det är en statistisk yrkesväxling, pil om det finns en bedömningen för hur efterfrågan på arbetskraft förväntas utvecklas på fem års sikt. På andra raden finns en cirkel om det finns en nulägesbedömningen för möjligheter till arbete (vit = små, ljusgrön = medel, grön = stora), följt av antal annonser i Platsbanken med en klickbar länk och antal annonser 2024."
+
             with col1:
                 st.markdown(f"<p style='font-size:16px;'>{headline_1}</p>", unsafe_allow_html=True)
                 for key, value in similar_1.items():
@@ -664,7 +727,7 @@ def post_selected_occupation(id_occupation):
                         adwords_similar = st.session_state.adwords.get(value[0])
                         venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
                         st.pyplot(venn)
-                        st.markdown(value[3], unsafe_allow_html = True)  
+                        st.markdown(value[3], unsafe_allow_html = True, help = info_liknande_yrke_statistik)  
                         st.markdown(value[2], unsafe_allow_html = True)               
 
             with col2:
@@ -674,7 +737,7 @@ def post_selected_occupation(id_occupation):
                         adwords_similar = st.session_state.adwords.get(value[0])
                         venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
                         st.pyplot(venn)
-                        st.markdown(value[3], unsafe_allow_html = True)
+                        st.markdown(value[3], unsafe_allow_html = True, help = info_liknande_yrke_statistik)
                         st.markdown(value[2], unsafe_allow_html = True)     
 
         else:
