@@ -486,7 +486,8 @@ def choose_related_locations(tab_name):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Är det något du saknar i sökresultatet?", "Är det någon information som är överflödig?", "Ge ett exempel på ett konstigt resultat"]
+        feedback_questions = ["Är relevanta pendlingsorter en hjälp i diskussionen med sökande?", "Vad kan göra relevanta pendlingsorter bättre?"]
+        
         create_feedback("", tab_name, feedback_questions, selected_location)
 
 
@@ -654,7 +655,7 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Underlättar annonsantal och länk till Platsbanken ditt arbete?"]
+        feedback_questions = ["Underlättar annonsantal och länk till Platsbanken ditt arbete?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[1], feedback_questions)
 
     with tab3:
@@ -689,7 +690,7 @@ def post_selected_occupation(id_occupation):
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
 
-        feedback_questions = ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"]
+        feedback_questions = ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[2], feedback_questions)
 
     with tab4:
@@ -748,7 +749,7 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Är fliken närliggande yrken en hjälp i samtal med sökande?"]
+        feedback_questions = ["Är fliken närliggande yrken en hjälp i samtal med sökande?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[3], feedback_questions)
 
     with tab5:
