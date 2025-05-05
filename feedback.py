@@ -10,13 +10,13 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
-from import_ads_platsbanken import import_ads
+#from import_ads_platsbanken import import_ads
 
 
-@st.cache_data
-def import_plastbanken():
-    data = import_ads()
-    return data
+# @st.cache_data
+# def import_plastbanken():
+#     data = import_ads()
+#     return data
 
 @st.cache_data
 def import_data(filename):
@@ -34,8 +34,8 @@ def fetch_data():
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
-    st.session_state.ad_data_platsbanken = import_plastbanken()
-    #st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
+    #st.session_state.ad_data_platsbanken = import_plastbanken()
+    st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
     st.session_state.forecast = import_data("barometer_regional.json")
@@ -718,7 +718,7 @@ def post_selected_occupation(id_occupation):
 
             similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
 
-            info_liknande_yrke_statistik = "Yrkesbenämningen följs av följande information på första raden: (SCB) om det är en statistisk yrkesväxling, pil om det finns en bedömningen för hur efterfrågan på arbetskraft förväntas utvecklas på fem års sikt. På andra raden finns en cirkel om det finns en nulägesbedömningen för möjligheter till arbete (vit = små, ljusgrön = medel, grön = stora), följt av antal annonser i Platsbanken med en klickbar länk och antal annonser 2024."
+            info_liknande_yrke_statistik = "Yrkesbenämningen följs av följande information på första raden: (SCB) om det är en statistisk yrkesväxling, cirkel som motsvarar annonsöverlappet, pil om det finns en bedömningen för hur efterfrågan på arbetskraft förväntas utvecklas på fem års sikt. På andra raden finns en cirkel om det finns en nulägesbedömningen för möjligheter till arbete (vit = små, ljusgrön = medel, grön = stora), följt av antal annonser i Platsbanken med en klickbar länk och antal annonser 2024."
 
             with col1:
                 st.markdown(f"<p style='font-size:16px;'>{headline_1}</p>", unsafe_allow_html=True)
