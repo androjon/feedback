@@ -10,13 +10,6 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
-#from import_ads_platsbanken import import_ads
-
-
-# @st.cache_data
-# def import_plastbanken():
-#     data = import_ads()
-#     return data
 
 @st.cache_data
 def import_data(filename):
@@ -29,12 +22,14 @@ def fetch_data():
     st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
+        if value["no_educational_requirement"] == True:
+            st.session_state.valid_occupations_no_educational_req[value["preferred_label"]] = key
+    st.session_state.valid_occupations_names_no_educational_req = sorted(list(st.session_state.valid_occupations_no_educational_req.keys()))
     st.session_state.valid_occupation_names = sorted(list(st.session_state.valid_occupations.keys()))
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
-    #st.session_state.ad_data_platsbanken = import_plastbanken()
     st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
@@ -43,6 +38,7 @@ def fetch_data():
     st.session_state.valid_locations = list(st.session_state.locations_id.keys())
     st.session_state.geodata = import_data("ort_ort_relevans.json")
     st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+    st.session_state.ssyk_salary = import_data("ssyk_salary.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -54,6 +50,7 @@ def initiate_session_state():
     if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
+        st.session_state.valid_occupations_no_educational_req = {}
 
         credentials_dict = st.secrets["gcp_service_account"]
         st.session_state.credentials = service_account.Credentials.from_service_account_info(credentials_dict)
@@ -307,7 +304,7 @@ def create_wordcloud(words):
     plt.tight_layout(pad = 0)
     st.pyplot(plt)
 
-def get_adds(occupation, location):
+def get_ads(occupation, location):
     ads = [0, 0]
     ads_selected_occupation = st.session_state.ad_data_platsbanken.get(occupation)
     if ads_selected_occupation:
@@ -365,18 +362,6 @@ def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link)
 
     first_row_bold_html = first_row_html.replace(f">{namn}", f"><strong>{namn}</strong>")
 
-    #Med färgad cirkel efter annonsantal
-    # second_row_html = f"""
-    # <div style="font-size: 13px; color: #333; margin-top: 2px; font-family: sans-serif;">
-    #     &emsp;&emsp;&emsp;
-    #     {annonser_idag} {annons_er_plats} 
-    #     <a href="{link}" target="_blank" style="text-decoration: none; color: #0066cc;">
-    #         Platsbanken
-    #     </a> 
-    #     (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>) {färg_html}
-    # </div>
-    # """
-
     second_row_html = f"""
     <div style="font-size: 13px; color: #333; margin-top: 2px; font-family: sans-serif;">
         &emsp;&emsp;&emsp;
@@ -388,7 +373,6 @@ def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link)
         (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>)
     </div>
     """
-
 
     full_html = f"""
     <div style="margin-bottom: 14px;">
@@ -425,7 +409,7 @@ def create_similar_occupations(ssyk_source, region_id):
         else:
             regional_forecast = None
 
-        ads = get_adds(similar_group_id, region_id)
+        ads = get_ads(similar_group_id, region_id)
 
         similar_string, name_similar_f = render_job_info_html(
             name_similar, v, labour_flow, regional_forecast, ads, create_regional_link(similar_group_id, region_id))
@@ -642,13 +626,25 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
-        ads = get_adds(occupation_group_id, selected_region_id)
+        ads = get_ads(occupation_group_id, selected_region_id)
         link = create_regional_link(occupation_group_id, selected_region_id)
 
         c.metric(label = "Platsbanken", value = ads[0])
         d.metric(label = "2024", value = ads[1])
 
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
+
+        st.subheader(f"Lön - {occupation_group}")
+
+        k, l, m = st.columns(3)
+
+        salary = st.session_state.ssyk_salary.get(ssyk_code)
+
+        salary_string1 = f"<p style='font-size:16px;'>10 % tjänar mindre än<br />Genomsnittslön<br />10% tjänar mer än</p>"
+        salary_string2 = f"<p style='font-size:16px;'><strong>{salary[0]}<br />{salary[1]}<br />{salary[2]}</strong></p>"
+
+        k.markdown(salary_string1, unsafe_allow_html = True)
+        l.markdown(salary_string2, unsafe_allow_html = True)
         
         text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024."
 
@@ -758,9 +754,32 @@ def post_selected_occupation(id_occupation):
 
 def choose_occupation_name():
     show_initial_information()
-    selected_occupation_name = st.selectbox(
-        "Välj en yrkesbenämning",
-        (st.session_state.valid_occupation_names), placeholder = "", index = None)
+
+    col1, col2 = st.columns([0.7, 0.3])       
+    with col1:
+        if st.session_state.get("no_ed_req", False):
+            selected_occupation_name = st.selectbox(
+                "Välj en yrkesbenämning",
+                st.session_state.valid_occupations_names_no_educational_req,
+                placeholder = "",
+                index = None)
+        else:
+            selected_occupation_name = st.selectbox(
+                "Välj en yrkesbenämning",
+                st.session_state.valid_occupation_names,
+                placeholder = "",
+                index = None)
+
+    with col2:
+        st.markdown(
+            """<div style='margin-top: 2.1em;'>""",
+            unsafe_allow_html=True)
+        no_ed_req = st.toggle(
+            ":small[Utan utbildningskrav]",
+            key = "no_ed_req",
+            help = "Yrken utan utbildningskrav är ett urval av yrken som vanligtvis inte kräver en yrkesutbildning.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
     if selected_occupation_name:
         plt.close("all")
         id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
