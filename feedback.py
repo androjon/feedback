@@ -635,16 +635,18 @@ def post_selected_occupation(id_occupation):
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
 
         st.subheader(f"Lön - {occupation_group}")
-
-        k, l, m = st.columns(3)
-
         salary = st.session_state.ssyk_salary.get(ssyk_code)
 
-        salary_string1 = f"<p style='font-size:16px;'>10 % tjänar mindre än<br />Genomsnittslön<br />10% tjänar mer än</p>"
-        salary_string2 = f"<p style='font-size:16px;'><strong>{salary[0]}<br />{salary[1]}<br />{salary[2]}</strong></p>"
+        if salary:
+            k, l, m = st.columns(3)
+            salary_string1 = f"<p style='font-size:16px;'>10 % tjänar mindre än<br />Genomsnittslön<br />10% tjänar mer än</p>"
+            salary_string2 = f"<p style='font-size:16px;'><strong>{salary[0]}<br />{salary[1]}<br />{salary[2]}</strong></p>"
 
-        k.markdown(salary_string1, unsafe_allow_html = True)
-        l.markdown(salary_string2, unsafe_allow_html = True)
+            k.markdown(salary_string1, unsafe_allow_html = True)
+            l.markdown(salary_string2, unsafe_allow_html = True)
+
+        else:
+            st.write(f"Ingen tillgänglig data")
         
         text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024."
 
