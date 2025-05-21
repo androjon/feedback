@@ -55,6 +55,10 @@ def initiate_session_state():
             st.session_state.geodata = import_data("ort_ort_relevans.json")
     if "municipality_id_namn" not in st.session_state:
             st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+    if "occupation_id_dk_preflabel" not in st.session_state:
+        st.session_state.occupation_id_dk_preflabel = import_data("occupation_id_dk_preflabel.json")
+    if "occupation_id_no_preflabel" not in st.session_state:
+        st.session_state.occupation_id_no_preflabel = import_data("occupation_id_no_preflabel.json") 
     if "adwords_occupation" not in st.session_state:
         st.session_state.adwords_occupation = {}
     if "credentials" not in st.session_state:
@@ -66,6 +70,8 @@ def initiate_session_state():
         st.session_state.valid_occupations_names_no_educational_req = sorted(list(st.session_state.valid_occupations_no_educational_req.keys()))
     if "valid_locations" not in st.session_state:
         st.session_state.valid_locations = list(st.session_state.locations_id.keys())
+    if "selected_region" not in st.session_state:
+        st.session_state.selected_region = ""
 
 def load_feedback():
     """Ladda befintlig feedback från GCS."""
@@ -488,6 +494,39 @@ def skapa_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap):
     venn = create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap)
     return venn
 
+def create_dk_link(dk_names):
+    alla_dk_names = []
+    to_convert = {
+        "ø": "%25C3%25B8",
+        "æ": "%25C3%25A6",
+        "å": "%25C3%25A5",
+        " ": "%2520"}
+    for d in dk_names:
+        for key, value in to_convert.items():
+            d = re.sub(key, value, d)
+        alla_dk_names.append(d)
+    alla_dk_url_string = ";".join(alla_dk_names)
+    alla_dk_string =  " + ".join(dk_names)
+    dk_string = f"<p style='font-size:16px;'><br /><strong>Danska annonser</strong><br />Relaterade danska yrken är: {alla_dk_string}</p>"
+    url = f"https://job.jobnet.dk/CV/FindWork?Offset=0&SortValue=BestMatch&Region=Hovedstaden%2520og%2520Bornholm&Occupations={alla_dk_url_string}"
+    return url, dk_string
+
+def create_no_link(no_names):
+    alla_no_names = []
+    to_convert = {
+        r"\(": "%28",
+        r"\)": "%29",
+        " ": "+",
+        "/": "%2F"}
+    for d in no_names:
+        for key, value in to_convert.items():
+            d = re.sub(key, value, d)
+        alla_no_names.append(d)
+    alla_no_url_string = "&q=".join(alla_no_names)
+    alla_no_string =  " + ".join(no_names)
+    no_string = f"<p style='font-size:16px;'><br /><strong>Norska annonser</strong><br />Relaterade norska yrken är: {alla_no_string}</p>"
+    url = f"https://arbeidsplassen.nav.no/stillinger?q={alla_no_url_string}&v=5&county=OSLO"
+    return url, no_string
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -625,28 +664,51 @@ def post_selected_occupation(id_occupation):
             c, d, e = st.columns(3)
 
         index_förvald_region = valid_regions.index("Skåne län")
-        if not index_förvald_region:
-            index_förvald_region = None
 
         selected_region = b.selectbox(
         "Regional avgränsning", (valid_regions), index = index_förvald_region)
 
         if selected_region:
-            if selected_region == "Sverige":
+            st.session_state.selected_region = selected_region
+            if st.session_state.selected_region == "Sverige":
                 selected_region_id = "i46j_HmG_v64"
             else:
-                selected_region_id = st.session_state.regions.get(selected_region)
+                selected_region_id = st.session_state.regions.get(st.session_state.selected_region)
         else:
-            selected_region = "Sverige"
+            st.session_state.selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
         ads = get_ads(occupation_group_id, selected_region_id)
         link = create_regional_link(occupation_group_id, selected_region_id)
 
-        c.metric(label = "Platsbanken", value = ads[0])
-        d.metric(label = "2024", value = ads[1])
+        c.metric(label = f"Platsbanken\n\n{st.session_state.selected_region}", value = ads[0])
+        d.metric(label = f"2024\n\n{st.session_state.selected_region}", value = ads[1])
 
-        st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
+        st.link_button(f"Platsbanken - {occupation_group} - {st.session_state.selected_region}", link, icon = ":material/link:")
+
+        show_nordic = st.toggle(
+            ":small[Visa länkar till nordiska annonser]",
+            key = "show_nordic")
+
+        g, h = st.columns(2)
+        i, j = st.columns(2)
+
+        if show_nordic:
+            dk_preflabels = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
+            if dk_preflabels:
+                dk_link, dk_string = create_dk_link(dk_preflabels)
+                with g:
+                    st.markdown(dk_string, unsafe_allow_html = True)
+                with i:
+                    st.link_button(f"Jobnet.dk - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
+
+            no_preflabels = st.session_state.occupation_id_no_preflabel.get(id_occupation)
+            if no_preflabels:
+                no_link, no_string = create_no_link(no_preflabels)
+                with h:
+                    st.markdown(no_string, unsafe_allow_html = True)
+                with j:
+                    st.link_button(f"Nav.no - Oslo", no_link, icon = ":material/link:")
 
         st.subheader(f"Lön - {occupation_group}")
 
@@ -722,9 +784,12 @@ def post_selected_occupation(id_occupation):
             else:
                 st.subheader(f"Närliggande yrken - {occupation_group}")
 
+            text_information_närliggande_yrken = f"I vänstra kolumnen återfinns yrken som både är vanliga yrkesväxlingar och där det finns annonslikheter. I den högra kolumnen visas yrken där det finns annonslikheter. Antal annonser som visas knyts till den regionala avgränsningen under Jobbmöjligheter ({st.session_state.selected_region})."
+            st.markdown(f"<p style='font-size:12px;'>{text_information_närliggande_yrken}</p>", unsafe_allow_html=True)
+
             col1, col2 = st.columns(2)
 
-            headline_1 = "<strong>Annonsöverlapp och vanlig yrkesväxling</strong>"
+            headline_1 = "<strong>Vanlig yrkesväxling och annonsöverlapp</strong>"
             headline_2 = "<strong>Annonsöverlapp</strong>"
 
             similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
